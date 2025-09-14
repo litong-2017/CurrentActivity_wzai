@@ -18,7 +18,6 @@ public class ActivityUtil {
     /**
      * 跳转系统悬浮窗授权页
      *
-     * @param context
      */
     public static void turnToOverlayPermission(Context context) {
         // Android 6.0以上需要配置
@@ -45,7 +44,6 @@ public class ActivityUtil {
     /**
      * 跳转通知授权页
      *
-     * @param context
      */
     public static void turnToNotifyPermission(Context context) {
         Intent intent;

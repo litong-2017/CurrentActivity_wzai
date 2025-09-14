@@ -1,5 +1,6 @@
 package com.wangnan.currentactivity.ui.window;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -27,6 +28,7 @@ public class WindowViewContainer {
     /***
      * 窗口视图容器（引用变量）
      */
+    @SuppressLint("StaticFieldLeak")
     private static WindowViewContainer mCustomWindowView;
 
     /**

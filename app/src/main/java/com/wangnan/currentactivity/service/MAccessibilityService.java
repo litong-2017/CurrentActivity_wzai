@@ -1,6 +1,7 @@
 package com.wangnan.currentactivity.service;
 
 import android.accessibilityservice.AccessibilityService;
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,6 +9,8 @@ import android.content.Context;
 import android.content.IntentFilter;
 import android.os.Build;
 import android.view.accessibility.AccessibilityEvent;
+
+import androidx.annotation.RequiresApi;
 
 import com.wangnan.currentactivity.receiver.MAccessibilityServiceReceiver;
 import com.wangnan.currentactivity.ui.activity.MainActivity;
@@ -51,6 +54,7 @@ public class MAccessibilityService extends AccessibilityService {
     /**
      * 服务连接完成
      */
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
@@ -86,6 +90,8 @@ public class MAccessibilityService extends AccessibilityService {
     /**
      * 添加通知
      */
+    @SuppressLint("ObsoleteSdkInt")
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private void addNotification() {
         try {
             // 获取通知管理器

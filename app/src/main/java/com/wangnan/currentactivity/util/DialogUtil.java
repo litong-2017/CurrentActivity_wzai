@@ -7,7 +7,7 @@ import com.wangnan.currentactivity.widget.CustomDialog;
 /**
  * @ClassName: DialogUtil
  * @Description: 对话框工具类
- * @Author wangnan7
+ * @Author wanna7
  * @Date: 2018/4/1
  */
 
