@@ -1,15 +1,17 @@
 package com.wangnan.currentactivity.util;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 
 /**
  * @ClassName: ActivityUtil
  * @Description: Activity跳转工具类
- * @Author wangnan7
+ * @Author wanna7
  * @Date: 2018/4/1
  */
 
@@ -35,7 +37,7 @@ public class ActivityUtil {
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(intent);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Log.d("ERROR", Log.getStackTraceString(ex));
                 }
             }
         }
@@ -45,6 +47,7 @@ public class ActivityUtil {
      * 跳转通知授权页
      *
      */
+    @SuppressLint("ObsoleteSdkInt")
     public static void turnToNotifyPermission(Context context) {
         Intent intent;
         try {
@@ -85,7 +88,6 @@ public class ActivityUtil {
     /**
      * 去授权"辅助服务"
      *
-     * @param context
      */
     public static void toAuthAccessibilityService(Context context) {
         try {
@@ -100,7 +102,7 @@ public class ActivityUtil {
                 context.startActivity(intent);
             } catch (Exception ex) {
                 // 记录错误但不崩溃
-                ex.printStackTrace();
+                Log.d("ERROR", Log.getStackTraceString(ex));
             }
         }
     }

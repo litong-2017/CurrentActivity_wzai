@@ -16,7 +16,6 @@ public class DialogUtil {
     /**
      * 显示"悬浮窗权限"提醒对话框
      *
-     * @param activity
      */
     public static void showOverlayAlertDialog(final AppCompatActivity activity) {
         CustomDialog.showInstance(
@@ -41,7 +40,6 @@ public class DialogUtil {
     /**
      * 显示"辅助服务"提醒对话框
      *
-     * @param activity
      * @param msg      消息内容
      * @param cancle   取消按钮文本
      * @param confirm  确认按钮文本

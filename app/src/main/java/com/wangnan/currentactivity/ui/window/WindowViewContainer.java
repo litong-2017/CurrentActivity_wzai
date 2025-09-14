@@ -1,11 +1,10 @@
 package com.wangnan.currentactivity.ui.window;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,8 +21,6 @@ import com.wangnan.currentactivity.R;
  */
 
 public class WindowViewContainer {
-
-    /** ********************************    单例模式    *********************************************/
 
     /***
      * 窗口视图容器（引用变量）
@@ -51,17 +48,12 @@ public class WindowViewContainer {
 
     /*******************************************************************************************/
 
-    private Context mContext;
+    private final Context mContext;
 
     /**
      * 窗口文本视图（显示包名+类名）
      */
     private TextView mTextView;
-
-    /**
-     * 窗口布局参数
-     */
-    private WindowManager.LayoutParams mParams;
 
     /**
      * 窗口管理器
@@ -81,8 +73,8 @@ public class WindowViewContainer {
     /**
      * 初始化视图
      *
-     * @param context
      */
+    @SuppressLint("InflateParams")
     private void initView(Context context) {
         mTextView = (TextView) LayoutInflater.from(context).inflate(R.layout.lay_window, null);
     }
@@ -101,9 +93,10 @@ public class WindowViewContainer {
     /**
      * 添加窗口视图
      */
+    @SuppressLint("RtlHardcoded")
     private void addView() {
         // 创建布局参数
-        mParams = new WindowManager.LayoutParams();
+        WindowManager.LayoutParams mParams = new WindowManager.LayoutParams();
         // 获取窗口管理器
         mWindowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
         // 设置类型
@@ -142,7 +135,7 @@ public class WindowViewContainer {
             try {
                 addView();
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.d("ERROR", Log.getStackTraceString(e));
             }
         }
     }

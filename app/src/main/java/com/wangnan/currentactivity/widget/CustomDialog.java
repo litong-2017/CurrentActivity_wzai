@@ -43,6 +43,7 @@ public class CustomDialog extends DialogFragment {
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        assert getDialog() != null;
         getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         getDialog().getWindow().requestFeature(Window.FEATURE_NO_TITLE);
         rootView = inflater.inflate(R.layout.lay_custom_dialog, container, false);
@@ -57,6 +58,7 @@ public class CustomDialog extends DialogFragment {
      */
     private void init() {
         DisplayMetrics dm = new DisplayMetrics();
+        assert getActivity() != null;
         getActivity().getWindowManager().getDefaultDisplay().getMetrics(dm);
         screenWidth = dm.widthPixels;
         screenHeight = dm.heightPixels;
@@ -77,6 +79,7 @@ public class CustomDialog extends DialogFragment {
      */
     private void initData() {
         Bundle arguments = getArguments();
+        assert arguments != null;
         CharSequence message = arguments.getCharSequence("message"); // 消息
         CharSequence cancle = arguments.getCharSequence("cancle"); // 取消按钮
         CharSequence confirm = arguments.getCharSequence("confirm"); // 确认按钮
@@ -132,6 +135,7 @@ public class CustomDialog extends DialogFragment {
 
         // 设置"Back键"点击监听
         if (mBackCallback != null) {
+            assert getDialog() != null;
             getDialog().setOnKeyListener(new DialogInterface.OnKeyListener() {
                 @Override
                 public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
@@ -148,6 +152,7 @@ public class CustomDialog extends DialogFragment {
     @Override
     public void onResume() {
         super.onResume();
+        assert getDialog() != null;
         getDialog().getWindow().setLayout(screenWidth, screenHeight);
     }
 
@@ -173,31 +178,27 @@ public class CustomDialog extends DialogFragment {
     /**
      * 显示Dialog对话框
      *
-     * @param activity
      * @param message         消息文本
      * @param cancle          "取消按钮"文本
      * @param cancleCallback  "取消按钮"点击回调
      * @param confirm         "确认按钮"文本
      * @param confirmCallback "确认按钮"点击回调
-     * @return
      */
-    public static CustomDialog showInstance(AppCompatActivity activity, CharSequence message, CharSequence cancle, CancleCallback cancleCallback, CharSequence confirm, ConfirmCallback confirmCallback) {
-        return showInstance(activity, message, cancle, cancleCallback, confirm, confirmCallback, null);
+    public static void showInstance(AppCompatActivity activity, CharSequence message, CharSequence cancle, CancleCallback cancleCallback, CharSequence confirm, ConfirmCallback confirmCallback) {
+        showInstance(activity, message, cancle, cancleCallback, confirm, confirmCallback, null);
     }
 
     /**
      * 显示Dialog对话框
      *
-     * @param activity
      * @param message         消息文本
      * @param cancle          "取消按钮"文本
      * @param cancleCallback  "取消按钮"点击回调
      * @param confirm         "确认按钮"文本
      * @param confirmCallback "确认按钮"点击回调
      * @param backCallback    "Back键"点击回调
-     * @return
      */
-    public static CustomDialog showInstance(AppCompatActivity activity, CharSequence message, CharSequence cancle, CancleCallback cancleCallback, CharSequence confirm, ConfirmCallback confirmCallback, BackCallback backCallback) {
+    public static void showInstance(AppCompatActivity activity, CharSequence message, CharSequence cancle, CancleCallback cancleCallback, CharSequence confirm, ConfirmCallback confirmCallback, BackCallback backCallback) {
         CustomDialog dialog = new CustomDialog();
         Bundle bundle = new Bundle();
         bundle.putCharSequence("message", message);
@@ -208,6 +209,5 @@ public class CustomDialog extends DialogFragment {
         dialog.mBackCallback = backCallback;
         dialog.setArguments(bundle);
         dialog.show(activity.getSupportFragmentManager(), "");
-        return dialog;
     }
 }

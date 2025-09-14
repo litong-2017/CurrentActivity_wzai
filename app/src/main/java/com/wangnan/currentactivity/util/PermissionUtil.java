@@ -5,6 +5,7 @@ import android.os.Build;
 import android.provider.Settings;
 import androidx.core.app.NotificationManagerCompat;
 import android.text.TextUtils;
+import android.util.Log;
 
 /**
  * @ClassName: PermissionUtil
@@ -28,8 +29,6 @@ public class PermissionUtil {
     /**
      * 检查应用通知权限
      *
-     * @param context
-     * @return
      */
     public static boolean hasNotifyPermission(Context context) {
         try {
@@ -56,7 +55,6 @@ public class PermissionUtil {
     /**
      * 获取指定AccessibilityService的授权状态（服务是否已授权开启）
      *
-     * @param context
      * @param serviceName 服务名称（名称可参考{@link com.wangnan.currentactivity.service.MAccessibilityService#SERVCE_NAME}）
      */
     public static boolean getServiceState(Context context, String serviceName) {
@@ -65,7 +63,7 @@ public class PermissionUtil {
             // 是否允许辅助服务运行（当前应用程序是否有辅助服务，有辅助服务返回1，没有辅助服务返回0）
             enable = Settings.Secure.getInt(context.getApplicationContext().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED);
         } catch (Settings.SettingNotFoundException e) {
-            e.printStackTrace();
+            Log.d("ERROR", Log.getStackTraceString(e));
             return false;
         }
         if (enable == 1) {

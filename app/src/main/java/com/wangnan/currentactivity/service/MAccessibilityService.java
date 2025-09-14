@@ -8,6 +8,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.os.Build;
+import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
 import androidx.annotation.RequiresApi;
@@ -24,6 +25,7 @@ import com.wangnan.currentactivity.util.NotificationUtil;
  * @Date: 2018/4/1
  */
 
+@SuppressLint("AccessibilityPolicy")
 public class MAccessibilityService extends AccessibilityService {
 
     /**
@@ -54,7 +56,8 @@ public class MAccessibilityService extends AccessibilityService {
     /**
      * 服务连接完成
      */
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @SuppressLint({"UnspecifiedRegisterReceiverFlag", "ObsoleteSdkInt"})
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
@@ -83,7 +86,7 @@ public class MAccessibilityService extends AccessibilityService {
                 MainActivity.mActivity.updateUI();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d("ERROR", Log.getStackTraceString(e));
         }
     }
 
@@ -124,7 +127,7 @@ public class MAccessibilityService extends AccessibilityService {
                 startForeground(NOTIFICATION_ID, notification);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d("ERROR", Log.getStackTraceString(e));
         }
     }
 
@@ -136,15 +139,11 @@ public class MAccessibilityService extends AccessibilityService {
         if (event == null) {
             return;
         }
-        switch (event.getEventType()) {
-            case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED: // 窗口状态改变
-                if (event.getPackageName() != null && event.getClassName() != null) {
-                    // 更新窗口视图
-                    mWindowViewContainer.updateWindowView(event.getPackageName() + "\n" + event.getClassName());
-                }
-                break;
-            default:
-                break;
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) { // 窗口状态改变
+            if (event.getPackageName() != null && event.getClassName() != null) {
+                // 更新窗口视图
+                mWindowViewContainer.updateWindowView(event.getPackageName() + "\n" + event.getClassName());
+            }
         }
     }
 

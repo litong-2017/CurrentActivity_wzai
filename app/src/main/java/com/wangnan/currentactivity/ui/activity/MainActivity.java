@@ -1,5 +1,6 @@
 package com.wangnan.currentactivity.ui.activity;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,7 +21,7 @@ import com.wangnan.currentactivity.util.PermissionUtil;
 /**
  * @ClassName: MainActivity
  * @Description: 主界面
- * @Author wangnan7
+ * @Author wanna7
  * @Date: 2018/4/1
  */
 
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 当前Activity静态引用
      */
+    @SuppressLint("StaticFieldLeak")
     public static MainActivity mActivity;
 
     private LinearLayout mSwitchLL; // 打开/关闭悬浮窗（根布局）
@@ -126,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 更新界面UI
      */
+    @SuppressLint("ObsoleteSdkInt")
     public void updateUI() {
         // 设置"打开/关闭悬浮窗"提示
         boolean isShow = WindowViewContainer.getInstance(this).getWinodwViewShowState();

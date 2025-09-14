@@ -1,5 +1,6 @@
 package com.wangnan.currentactivity.util;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -16,7 +17,7 @@ import com.wangnan.currentactivity.ui.activity.MainActivity;
 /**
  * @ClassName: NotificationUtil
  * @Description: 通知栏工具类
- * @Author wangnan7
+ * @Author wanna7
  * @Date: 2018/4/1
  */
 
@@ -35,8 +36,6 @@ public class NotificationUtil {
     /**
      * 根据Android不同版本获取Notification实例
      *
-     * @param context
-     * @return
      */
     public static Notification getNotificationByVersion(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -62,7 +61,7 @@ public class NotificationUtil {
         // 设置自定义视图
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.lay_custom_notification);
         // 设置自定义视图点击意图（传递给"MAccessibilityServiceReceiver，显示/隐藏悬浮窗、关闭悬浮窗）
-        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
+        @SuppressLint("ObsoleteSdkInt") int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
         remoteViews.setOnClickPendingIntent(R.id.tv_switch, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.SWITCH_ACTION), flags));
         remoteViews.setOnClickPendingIntent(R.id.tv_close, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.CLOSE_ACTION), flags));
         // 设置自定义视图
