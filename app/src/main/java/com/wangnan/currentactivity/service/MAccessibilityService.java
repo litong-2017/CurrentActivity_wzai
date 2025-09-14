@@ -181,14 +181,21 @@ public class MAccessibilityService extends AccessibilityService {
             // 验证包名和类名都不为空
             if (packageName != null && className != null) {
                 
-                // 格式化显示信息：包名换行类名
-                // 例如显示：
-                // com.android.settings
-                // com.android.settings.Settings
-                String displayText = packageName + "\n" + className;
+                // 获取当前时间戳
+                long currentTime = System.currentTimeMillis();
+                // 格式化时间显示 (HH:mm:ss)
+                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                String currentTimeStr = timeFormat.format(new java.util.Date(currentTime));
+                
+                // 格式化显示信息：时间 + 包名 + 类名
+                // 显示格式：
+                // 23:45:30 (切换时间)
+                // com.android.settings (应用包名)
+                // com.android.settings.Settings (Activity类名)
+                String displayText = currentTimeStr + "\n" + packageName + "\n" + className;
                 
                 // 更新悬浮窗显示内容
-                // 这里将获取到的前台页面信息传递给悬浮窗进行显示
+                // 这里将获取到的前台页面信息和时间戳传递给悬浮窗进行显示
                 if (mWindowViewContainer != null) {
                     mWindowViewContainer.updateWindowView(displayText);
                 }

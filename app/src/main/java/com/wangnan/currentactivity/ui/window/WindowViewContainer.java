@@ -124,15 +124,16 @@ public class WindowViewContainer {
     }
 
     /**
-     * 更新窗口视图 - 显示前台页面包名和类名
+     * 更新窗口视图 - 显示前台页面包名、类名和切换时间
      * 
      * 这个方法负责将从无障碍服务获取到的前台页面信息显示在悬浮窗中
      * 
      * 显示格式：
-     * 第一行：应用包名 (如: com.tencent.mm)
-     * 第二行：Activity类名 (如: com.tencent.mm.ui.LauncherUI)
+     * 第一行：切换时间 (如: 23:45:30)
+     * 第二行：应用包名 (如: com.tencent.mm)
+     * 第三行：Activity类名 (如: com.tencent.mm.ui.LauncherUI)
      * 
-     * @param text 要显示的文本内容，格式为"包名\nActivity类名"
+     * @param text 要显示的文本内容，格式为"时间\n包名\nActivity类名"
      */
     public void updateWindowView(String text) {
         // 检查悬浮窗是否已经添加到窗口管理器中
@@ -140,7 +141,10 @@ public class WindowViewContainer {
             
             // 更新悬浮窗文本内容
             // text 的典型格式：
-            // "com.android.settings\ncom.android.settings.Settings"
+            // "23:45:30\ncom.android.settings\ncom.android.settings.Settings"
+            // 第一行：窗口切换时间
+            // 第二行：应用包名  
+            // 第三行：Activity完整类名
             mTextView.setText(text);
             
             // 兼容性处理：防止某些情况下窗口被系统意外移除

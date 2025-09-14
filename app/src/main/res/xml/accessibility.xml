@@ -1,69 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 
-    无障碍服务配置文件
-    
-    这个配置文件定义了获取前台页面包名所需的无障碍服务参数
-    当用户在系统设置中启用此服务时，Android系统会读取这些配置
-    
-    核心功能：监听窗口状态变化，获取前台应用的包名和Activity信息
--->
+<!-- 无障碍服务配置文件 - 用于获取前台页面包名和Activity信息 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    
-    <!-- 服务描述：显示在系统无障碍设置页面的说明文字 -->
     android:description="@string/service_description"
-    
-    <!-- 
-        监听的事件类型：typeWindowStateChanged
-        这是获取前台页面包名的关键配置
-        
-        typeWindowStateChanged 事件会在以下情况触发：
-        1. 用户启动新的Activity
-        2. 用户切换到其他应用
-        3. Activity进入前台或后台
-        4. 窗口状态发生变化
-        
-        通过监听此事件，我们可以实时获取当前前台页面的信息
-    -->
     android:accessibilityEventTypes="typeWindowStateChanged"
-    
-    <!-- 
-        反馈类型：feedbackGeneric
-        表示服务会提供通用类型的反馈（如悬浮窗显示）
-        不会产生声音、振动等其他形式的反馈
-    -->
     android:accessibilityFeedbackType="feedbackGeneric"
-    
-    <!-- 
-        无障碍标志：
-        - flagDefault: 使用默认行为
-        - flagRetrieveInteractiveWindows: 允许检索交互式窗口信息
-        
-        这些标志确保服务能够正确获取窗口信息
-    -->
     android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
-    
-    <!-- 
-        允许检索窗口内容：true
-        这个权限允许服务访问窗口的内容信息
-        对于获取包名和类名信息是必需的
-    -->
     android:canRetrieveWindowContent="true"
-    
-    <!-- 
-        不请求触摸探索模式：false
-        我们不需要触摸探索功能，只需要监听窗口变化
-    -->
     android:canRequestTouchExplorationMode="false"
-    
-    <!-- 
-        不请求按键过滤：false  
-        我们不需要拦截按键事件，只关注窗口状态变化
-    -->
     android:canRequestFilterKeyEvents="false"
-    
-    <!-- 
-        设置界面Activity：指向应用的主界面
-        用户可以通过这个入口快速打开应用进行设置
-        在无障碍服务列表中会显示"设置"按钮
-    -->
     android:settingsActivity="com.wangnan.currentactivity.ui.activity.MainActivity" />
