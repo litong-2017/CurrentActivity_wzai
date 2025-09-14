@@ -1,10 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.wangnan.currentactivity">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 悬浮窗权限 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.SYSTEM_OVERLAY_WINDOW"/>
+    
+    <!-- 前台服务权限 (Android 9+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    
+    <!-- 前台服务类型权限 (Android 10+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    
+    <!-- 查询其他应用的权限 (Android 11+) -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" 
+        tools:ignore="QueryAllPackagesPermission" />
+    
+    <!-- 通知权限 (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 声明需要查询的Intent -->
+    <queries>
+        <intent>
+            <action android:name="android.settings.ACTION_MANAGE_OVERLAY_PERMISSION" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACTION_ACCESSIBILITY_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACTION_APP_NOTIFICATION_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACTION_APPLICATION_DETAILS_SETTINGS" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -17,7 +46,8 @@
         <!-- 主界面 -->
         <activity
             android:name=".ui.activity.MainActivity"
-            android:launchMode="singleTask" >
+            android:launchMode="singleTask"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -29,17 +59,23 @@
         <service
             android:name=".service.MAccessibilityService"
             android:label="@string/service_name"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:foregroundServiceType="specialUse">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility"/>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="accessibility_service" />
         </service>
 
         <!-- 辅助服务广播接收器 -->
-        <receiver android:name=".receiver.MAccessibilityServiceReceiver">
+        <receiver android:name=".receiver.MAccessibilityServiceReceiver"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.SWITCH" />
                 <action android:name="android.intent.action.CLOSE" />

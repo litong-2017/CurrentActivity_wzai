@@ -60,7 +60,7 @@
             android:layout_weight="1"
             android:padding="12dp"
             tools:text="【悬浮窗权限】（必须开启）"/>
-        <android.support.v7.widget.SwitchCompat
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/sc_overlay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -78,7 +78,7 @@
             android:layout_weight="1"
             android:padding="12dp"
             tools:text="【通知栏权限】（建议开启）"/>
-        <android.support.v7.widget.SwitchCompat
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/sc_notify"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -1,6 +1,6 @@
 package com.wangnan.currentactivity.util;
 
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.wangnan.currentactivity.widget.CustomDialog;
 

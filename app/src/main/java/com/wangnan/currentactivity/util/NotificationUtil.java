@@ -5,8 +5,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.support.annotation.RequiresApi;
-import android.support.v4.app.NotificationCompat;
+import androidx.annotation.RequiresApi;
+import androidx.core.app.NotificationCompat;
 import android.widget.RemoteViews;
 
 import com.wangnan.currentactivity.R;
@@ -62,8 +62,9 @@ public class NotificationUtil {
         // 设置自定义视图
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.lay_custom_notification);
         // 设置自定义视图点击意图（传递给"MAccessibilityServiceReceiver，显示/隐藏悬浮窗、关闭悬浮窗）
-        remoteViews.setOnClickPendingIntent(R.id.tv_switch, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.SWITCH_ACTION), 0));
-        remoteViews.setOnClickPendingIntent(R.id.tv_close, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.CLOSE_ACTION), 0));
+        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
+        remoteViews.setOnClickPendingIntent(R.id.tv_switch, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.SWITCH_ACTION), flags));
+        remoteViews.setOnClickPendingIntent(R.id.tv_close, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.CLOSE_ACTION), flags));
         // 设置自定义视图
         builder.setCustomContentView(remoteViews);
         // 构建Notification实例并返回
@@ -75,14 +76,15 @@ public class NotificationUtil {
      */
     private static Notification getNNotification(Context context) {
         // 创建通知建造者
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, null);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID);
         // 设置通知小图标
         builder.setSmallIcon(R.mipmap.ic_launcher);
         // 设置自定义视图
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.lay_custom_notification);
         // 设置自定义视图点击意图（传递给"MAccessibilityServiceReceiver，显示/隐藏悬浮窗、关闭悬浮窗）
-        remoteViews.setOnClickPendingIntent(R.id.tv_switch, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.SWITCH_ACTION), 0));
-        remoteViews.setOnClickPendingIntent(R.id.tv_close, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.CLOSE_ACTION), 0));
+        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
+        remoteViews.setOnClickPendingIntent(R.id.tv_switch, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.SWITCH_ACTION), flags));
+        remoteViews.setOnClickPendingIntent(R.id.tv_close, PendingIntent.getBroadcast(context, 0, new Intent(MAccessibilityServiceReceiver.CLOSE_ACTION), flags));
         // 设置自定义视图
         builder.setCustomContentView(remoteViews);
         // 构建Notification实例并返回
@@ -94,7 +96,7 @@ public class NotificationUtil {
      */
     private static Notification getNotification(Context context) {
         // 创建通知建造者
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, null);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID);
         // 设置通知小图标
         builder.setSmallIcon(R.mipmap.ic_launcher);
         // 设置标题
@@ -102,7 +104,8 @@ public class NotificationUtil {
         // 设置消息内容
         builder.setContentText(context.getString(R.string.service_running));
         // 设置内容意图（跳转"辅助功能"）
-        builder.setContentIntent(PendingIntent.getActivity(context, 0, new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS), 0));
+        int flags = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0;
+        builder.setContentIntent(PendingIntent.getActivity(context, 0, new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS), flags));
         // 构建Notification实例并返回
         return builder.build();
     }

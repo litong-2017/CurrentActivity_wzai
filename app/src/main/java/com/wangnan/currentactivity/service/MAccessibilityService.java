@@ -53,37 +53,72 @@ public class MAccessibilityService extends AccessibilityService {
      */
     @Override
     protected void onServiceConnected() {
-        // 添加窗口
-        mWindowViewContainer = WindowViewContainer.getInstance(this);
-        mWindowViewContainer.addWindowView();
-        // 添加通知栏消息（将服务提升到前台）
-        addNotification();
-        // 注册广播接收器
-        mReceiver = new MAccessibilityServiceReceiver();
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(MAccessibilityServiceReceiver.SWITCH_ACTION);
-        intentFilter.addAction(MAccessibilityServiceReceiver.CLOSE_ACTION);
-        registerReceiver(mReceiver, intentFilter);
+        super.onServiceConnected();
+        
+        try {
+            // 添加通知栏消息（将服务提升到前台）- 必须先启动前台服务
+            addNotification();
+            
+            // 添加窗口
+            mWindowViewContainer = WindowViewContainer.getInstance(this);
+            mWindowViewContainer.addWindowView();
+            
+            // 注册广播接收器
+            mReceiver = new MAccessibilityServiceReceiver();
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(MAccessibilityServiceReceiver.SWITCH_ACTION);
+            intentFilter.addAction(MAccessibilityServiceReceiver.CLOSE_ACTION);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(mReceiver, intentFilter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(mReceiver, intentFilter);
+            }
+            
+            // 更新主界面UI
+            if (MainActivity.mActivity != null) {
+                MainActivity.mActivity.updateUI();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * 添加通知
      */
     private void addNotification() {
-        // 获取通知管理器
-        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        // Android O以上需要配置通知渠道
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(NotificationUtil.CHANNEL_ID, NotificationUtil.CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT);
-            mNotificationManager.createNotificationChannel(channel);
-        }
-        // 获取Notification实例
-        Notification notification = NotificationUtil.getNotificationByVersion(this);
-        // 将辅助服务设置为前台服务
-        startForeground(NOTIFICATION_ID, notification);
-        // 显示Notification
-        if (mNotificationManager != null) {
-            mNotificationManager.notify(NOTIFICATION_ID, notification);
+        try {
+            // 获取通知管理器
+            mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (mNotificationManager == null) {
+                return;
+            }
+            
+            // Android O以上需要配置通知渠道
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                    NotificationUtil.CHANNEL_ID, 
+                    NotificationUtil.CHANNEL_NAME, 
+                    NotificationManager.IMPORTANCE_LOW // 改为低重要性，避免打扰用户
+                );
+                channel.setDescription("CurrentActivity 辅助服务通知");
+                channel.enableLights(false);
+                channel.enableVibration(false);
+                channel.setShowBadge(false);
+                mNotificationManager.createNotificationChannel(channel);
+            }
+            
+            // 获取Notification实例
+            Notification notification = NotificationUtil.getNotificationByVersion(this);
+            
+            // 将辅助服务设置为前台服务
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            } else {
+                startForeground(NOTIFICATION_ID, notification);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

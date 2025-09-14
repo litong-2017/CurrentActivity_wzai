@@ -3,7 +3,7 @@ package com.wangnan.currentactivity.util;
 import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
-import android.support.v4.app.NotificationManagerCompat;
+import androidx.core.app.NotificationManagerCompat;
 import android.text.TextUtils;
 
 /**
@@ -32,8 +32,25 @@ public class PermissionUtil {
      * @return
      */
     public static boolean hasNotifyPermission(Context context) {
-        NotificationManagerCompat manager = NotificationManagerCompat.from(context);
-        return manager.areNotificationsEnabled();
+        try {
+            NotificationManagerCompat manager = NotificationManagerCompat.from(context);
+            boolean enabled = manager.areNotificationsEnabled();
+            
+            // Android 13+ 还需要检查 POST_NOTIFICATIONS 权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                try {
+                    int permission = context.checkSelfPermission("android.permission.POST_NOTIFICATIONS");
+                    return enabled && (permission == android.content.pm.PackageManager.PERMISSION_GRANTED);
+                } catch (Exception e) {
+                    return enabled;
+                }
+            }
+            
+            return enabled;
+        } catch (Exception e) {
+            // 如果检查失败，假设有权限以避免阻塞
+            return true;
+        }
     }
 
     /**
