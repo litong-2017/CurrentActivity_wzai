@@ -20,9 +20,28 @@ import com.wangnan.currentactivity.util.NotificationUtil;
 
 /**
  * @ClassName: MAccessibilityService
- * @Description: 辅助服务
+ * @Description: 无障碍辅助服务 - 用于获取前台应用页面信息的核心服务
+ * 
+ * 功能说明：
+ * 1. 监听系统窗口状态变化事件
+ * 2. 实时获取前台应用的包名和Activity类名
+ * 3. 通过悬浮窗显示获取到的信息
+ * 4. 提供通知栏控制功能
+ * 
+ * 工作流程：
+ * 1. 用户在系统设置中开启此无障碍服务
+ * 2. 服务启动后创建前台通知和悬浮窗
+ * 3. 监听 TYPE_WINDOW_STATE_CHANGED 事件
+ * 4. 当用户切换应用或Activity时，自动获取并显示包名信息
+ * 
+ * 权限要求：
+ * - 无障碍服务权限 (用户手动授权)
+ * - 悬浮窗权限 (SYSTEM_ALERT_WINDOW)
+ * - 前台服务权限 (FOREGROUND_SERVICE)
+ * 
  * @Author wangnan7
  * @Date: 2018/4/1
+ * @Update: 2025/9/14 - 适配Android 15，优化获取逻辑
  */
 
 @SuppressLint("AccessibilityPolicy")
@@ -132,19 +151,57 @@ public class MAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * 接收辅助服务事件
+     * 接收辅助服务事件 - 这是获取前台页面包名的核心方法
+     * 
+     * 工作原理：
+     * 1. Android 系统在窗口状态发生变化时会触发无障碍事件
+     * 2. 我们监听 TYPE_WINDOW_STATE_CHANGED 事件来捕获Activity切换
+     * 3. 从事件中提取包名和类名信息
+     * 4. 将信息显示在悬浮窗中
+     * 
+     * @param event 无障碍事件对象，包含窗口状态变化的详细信息
      */
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        // 安全检查：确保事件对象不为空
         if (event == null) {
             return;
         }
-        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) { // 窗口状态改变
-            if (event.getPackageName() != null && event.getClassName() != null) {
-                // 更新窗口视图
-                mWindowViewContainer.updateWindowView(event.getPackageName() + "\n" + event.getClassName());
+        
+        // 检查事件类型：只处理窗口状态改变事件
+        // TYPE_WINDOW_STATE_CHANGED: 当Activity启动、切换或窗口状态发生变化时触发
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            
+            // 获取包名和类名
+            // getPackageName(): 返回当前前台应用的包名 (如: com.android.settings)
+            // getClassName(): 返回当前前台Activity的完整类名 (如: com.android.settings.Settings)
+            CharSequence packageName = event.getPackageName();
+            CharSequence className = event.getClassName();
+            
+            // 验证包名和类名都不为空
+            if (packageName != null && className != null) {
+                
+                // 格式化显示信息：包名换行类名
+                // 例如显示：
+                // com.android.settings
+                // com.android.settings.Settings
+                String displayText = packageName + "\n" + className;
+                
+                // 更新悬浮窗显示内容
+                // 这里将获取到的前台页面信息传递给悬浮窗进行显示
+                if (mWindowViewContainer != null) {
+                    mWindowViewContainer.updateWindowView(displayText);
+                }
+                
+                // 调试日志：可以在开发时查看获取到的信息
+                android.util.Log.d("CurrentActivity", 
+                    "前台应用包名: " + packageName + ", Activity类名: " + className);
             }
         }
+        
+        // 注意：还可以监听其他类型的事件来获取更多信息
+        // 例如：TYPE_WINDOW_CONTENT_CHANGED, TYPE_VIEW_CLICKED 等
+        // 但为了性能考虑，我们只监听窗口状态变化事件
     }
 
     /**

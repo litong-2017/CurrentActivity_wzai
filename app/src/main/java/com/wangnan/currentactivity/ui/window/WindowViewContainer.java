@@ -124,17 +124,35 @@ public class WindowViewContainer {
     }
 
     /**
-     * 更新窗口视图
-     *
-     * @param text 显示内容
+     * 更新窗口视图 - 显示前台页面包名和类名
+     * 
+     * 这个方法负责将从无障碍服务获取到的前台页面信息显示在悬浮窗中
+     * 
+     * 显示格式：
+     * 第一行：应用包名 (如: com.tencent.mm)
+     * 第二行：Activity类名 (如: com.tencent.mm.ui.LauncherUI)
+     * 
+     * @param text 要显示的文本内容，格式为"包名\nActivity类名"
      */
     public void updateWindowView(String text) {
-        if (isAdded) {
+        // 检查悬浮窗是否已经添加到窗口管理器中
+        if (isAdded && mTextView != null) {
+            
+            // 更新悬浮窗文本内容
+            // text 的典型格式：
+            // "com.android.settings\ncom.android.settings.Settings"
             mTextView.setText(text);
-            // 防止某些低版本的手机（或模拟器）按Back键应用退出时，Window窗口被移除无法恢复
+            
+            // 兼容性处理：防止某些情况下窗口被系统意外移除
+            // 在一些低版本设备或特定ROM上，当用户按Back键或应用切换时，
+            // 悬浮窗可能被系统自动移除，这里尝试重新添加确保显示正常
             try {
+                // 如果窗口已经存在，addView()会直接返回，不会重复添加
                 addView();
             } catch (Exception e) {
+                // 记录异常但不影响主要功能
+                // 可能的异常：WindowManager.BadTokenException, SecurityException等
+                Log.d("WindowViewContainer", "重新添加悬浮窗时发生异常: " + e.getMessage());
                 Log.d("ERROR", Log.getStackTraceString(e));
             }
         }
