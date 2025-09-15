@@ -230,37 +230,37 @@ public class MAccessibilityService extends AccessibilityService {
      * 
      * @return 格式化的设备状态字符串，如 "🔋85%电量 📱亮屏🔒锁定🎵播放"
      */
-    private String getDeviceStatusWithCachedAudio() {
-        try {
-            StringBuilder statusBuilder = new StringBuilder();
-            
-            // 1. 电池电量信息
-            statusBuilder.append(getBatteryInfo());
-            
-            // 2. 屏幕状态
-            statusBuilder.append(" ").append(getScreenStatus());
-            
-            // 3. 锁屏状态  
-            statusBuilder.append(getLockScreenStatus());
-            
-            // 4. 音乐播放状态 - 优先使用缓存的状态
-            String audioStatus;
-            if (!mCurrentAudioStatus.isEmpty()) {
-                audioStatus = mCurrentAudioStatus;
-                Log.d("DeviceStatus", "🎵 使用缓存的音频状态: " + audioStatus);
-            } else {
-                audioStatus = getMusicStatus();
-                Log.d("DeviceStatus", "🎵 实时获取音频状态: " + audioStatus);
-            }
-            statusBuilder.append(audioStatus);
-            
-            return statusBuilder.toString();
-            
-        } catch (Exception e) {
-            Log.e("DeviceStatus", "获取设备状态失败: " + e.getMessage());
-            return "🔋??%电量 📱未知";
-        }
-    }
+//    private String getDeviceStatusWithCachedAudio() {
+//        try {
+//            StringBuilder statusBuilder = new StringBuilder();
+//
+//            // 1. 电池电量信息
+//            statusBuilder.append(getBatteryInfo());
+//
+//            // 2. 屏幕状态
+//            statusBuilder.append(" ").append(getScreenStatus());
+//
+//            // 3. 锁屏状态
+//            statusBuilder.append(getLockScreenStatus());
+//
+//            // 4. 音乐播放状态 - 优先使用缓存的状态
+//            String audioStatus;
+//            if (!mCurrentAudioStatus.isEmpty()) {
+//                audioStatus = mCurrentAudioStatus;
+//                Log.d("DeviceStatus", "🎵 使用缓存的音频状态: " + audioStatus);
+//            } else {
+//                audioStatus = getMusicStatus();
+//                Log.d("DeviceStatus", "🎵 实时获取音频状态: " + audioStatus);
+//            }
+//            statusBuilder.append(audioStatus);
+//
+//            return statusBuilder.toString();
+//
+//        } catch (Exception e) {
+//            Log.e("DeviceStatus", "获取设备状态失败: " + e.getMessage());
+//            return "🔋??%电量 📱未知";
+//        }
+//    }
 
     /**
      * 获取完整的设备状态信息（实时获取所有状态）
@@ -411,19 +411,19 @@ public class MAccessibilityService extends AccessibilityService {
             if (audioManager == null) {
                 return "";
             }
-            
+
             // 检查音乐是否活跃（更准确的播放状态检测）
             boolean isMusicActive = audioManager.isMusicActive();
-            
+
             // 检查是否静音模式
             int ringerMode = audioManager.getRingerMode();
             boolean isSilentMode = ringerMode == AudioManager.RINGER_MODE_SILENT;
             boolean isVibrateMode = ringerMode == AudioManager.RINGER_MODE_VIBRATE;
-            
+
             // 检查媒体音量
             int musicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
             int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            
+
             // 检查是否有音频焦点（更准确的播放检测）
             boolean hasAudioFocus = false;
             try {
@@ -433,12 +433,12 @@ public class MAccessibilityService extends AccessibilityService {
                 // 如果反射失败，使用isMusicActive
                 hasAudioFocus = isMusicActive;
             }
-            
+
             // 优先显示播放状态
             if (isMusicActive || hasAudioFocus) {
                 return "🎵播放"; // 音乐播放中
             }
-            
+
             // 然后检查静音状态
             if (isSilentMode) {
                 return "🔇静音"; // 静音模式
@@ -452,14 +452,14 @@ public class MAccessibilityService extends AccessibilityService {
                 if (volumePercent > 0.7) {
                     return "🔊大声"; // 高音量
                 } else if (volumePercent > 0.3) {
-                    return "🔉中声"; // 中音量  
+                    return "🔉中声"; // 中音量
                 } else if (volumePercent > 0) {
                     return "🔈小声"; // 低音量
                 } else {
                     return "🔇无声"; // 无音量
                 }
             }
-            
+
         } catch (Exception e) {
             Log.e("MusicStatus", "获取音乐状态失败: " + e.getMessage());
             return "🔊未知";
@@ -514,7 +514,7 @@ public class MAccessibilityService extends AccessibilityService {
             
             // 获取当前时间
             long currentTime = System.currentTimeMillis();
-            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault());
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
             String currentTimeStr = timeFormat.format(new java.util.Date(currentTime));
             
             // 获取完整的设备状态信息（实时获取所有状态）
