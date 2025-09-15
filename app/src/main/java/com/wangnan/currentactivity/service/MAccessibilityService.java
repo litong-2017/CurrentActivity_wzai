@@ -78,11 +78,6 @@ public class MAccessibilityService extends AccessibilityService {
     private NotificationManager mNotificationManager;
     
     /**
-     * 音频状态监控器
-     */
-    private AudioStateMonitor mAudioStateMonitor;
-    
-    /**
      * 当前缓存的应用信息
      */
     private String mCurrentPackageName = "未知应用";
@@ -125,9 +120,6 @@ public class MAccessibilityService extends AccessibilityService {
             if (MainActivity.mActivity != null) {
                 MainActivity.mActivity.updateUI();
             }
-            
-            // 启动音频状态监控（传入悬浮窗容器）
-            startAudioMonitoring();
         } catch (Exception e) {
             Log.d("ERROR", Log.getStackTraceString(e));
         }
@@ -467,40 +459,6 @@ public class MAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * 启动音频状态监控
-     */
-    private void startAudioMonitoring() {
-        try {
-            if (mAudioStateMonitor == null && mWindowViewContainer != null) {
-                // 直接传入悬浮窗容器，让 AudioStateMonitor 自主更新悬浮窗
-                mAudioStateMonitor = new AudioStateMonitor(this, mWindowViewContainer);
-            }
-            if (mAudioStateMonitor != null) {
-                mAudioStateMonitor.startMonitoring();
-                Log.d("AudioMonitor", "🎵 音频监控服务已启动，AudioStateMonitor 将直接管理悬浮窗音频状态");
-            }
-        } catch (Exception e) {
-            Log.e("AudioMonitor", "启动音频监控失败: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * 停止音频状态监控
-     */
-    private void stopAudioMonitoring() {
-        try {
-            if (mAudioStateMonitor != null) {
-                mAudioStateMonitor.stopMonitoring();
-                mAudioStateMonitor = null;
-            }
-            Log.d("AudioMonitor", "音频监控服务已停止");
-        } catch (Exception e) {
-            Log.e("AudioMonitor", "停止音频监控失败: " + e.getMessage());
-        }
-    }
-    
-    
-    /**
      * 完整更新悬浮窗显示
      * 
      * 这个方法由前台应用变化和音频状态变化共同调用
@@ -571,8 +529,6 @@ public class MAccessibilityService extends AccessibilityService {
         if (MainActivity.mActivity != null) {
             MainActivity.mActivity.updateUI();
         }
-        // 停止音频状态监控
-        stopAudioMonitoring();
         
         // 停止前台服务
         stopForeground(true);
