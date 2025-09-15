@@ -1,8 +1,15 @@
 package com.wangnan.currentactivity.ui.activity;
 
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import android.text.Html;
@@ -11,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.wangnan.currentactivity.R;
+import com.wangnan.currentactivity.service.AudioMonitorService;
 import com.wangnan.currentactivity.service.MAccessibilityService;
 import com.wangnan.currentactivity.ui.window.WindowViewContainer;
 import com.wangnan.currentactivity.util.ActivityUtil;
@@ -46,7 +54,15 @@ public class MainActivity extends AppCompatActivity {
     private TextView mNotifyTV; // 通知栏权限（提示文本）
     private SwitchCompat mNotifySC; // 通知栏权限（开关按钮）
 
+    private LinearLayout mAudioMonitorLL; // 音频监控服务（根布局）
+    private TextView mAudioMonitorTV; // 音频监控服务（提示文本）
+    private SwitchCompat mAudioMonitorSC; // 音频监控服务（开关按钮）
+
     private View mCloseV; // 关闭辅助服务按钮
+
+    // 音频监控服务连接
+    private AudioMonitorService mAudioMonitorService;
+    private boolean mIsAudioMonitorBound = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
         mNotifyLL = findViewById(R.id.ll_notify);
         mNotifyTV = findViewById(R.id.tv_notify);
         mNotifySC = findViewById(R.id.sc_notify);
+        mAudioMonitorLL = findViewById(R.id.ll_audio_monitor);
+        mAudioMonitorTV = findViewById(R.id.tv_audio_monitor);
+        mAudioMonitorSC = findViewById(R.id.sc_audio_monitor);
         mCloseV = findViewById(R.id.tv_close);
     }
 
@@ -96,6 +115,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 ActivityUtil.turnToNotifyPermission(MainActivity.this);
+            }
+        });
+        // "音频监控服务"点击监听
+        mAudioMonitorSC.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleAudioMonitorService();
             }
         });
         // "关闭辅助服务"点击监听
@@ -152,6 +178,8 @@ public class MainActivity extends AppCompatActivity {
             mNotifySC.setChecked(notify);
             mNotifyLL.setVisibility(View.VISIBLE);
         }
+        // 设置"音频监控服务"状态
+        updateAudioMonitorUI();
         // 设置"关闭辅助服务按钮"的显示和隐藏
         if (PermissionUtil.getServiceState(this, MAccessibilityService.SERVCE_NAME)){
             mCloseV.setVisibility(View.VISIBLE);
@@ -179,10 +207,123 @@ public class MainActivity extends AppCompatActivity {
         updateUI();
     }
 
+    /**
+     * 切换音频监控服务
+     */
+    private void toggleAudioMonitorService() {
+        // 检查是否有悬浮窗权限，没有给出弹框提醒
+        if (!PermissionUtil.hasOverlayPermission(this)) {
+            DialogUtil.showOverlayAlertDialog(this);
+            mAudioMonitorSC.setChecked(false);
+            return;
+        }
+
+        if (mAudioMonitorSC.isChecked()) {
+            startAudioMonitorService();
+        } else {
+            stopAudioMonitorService();
+        }
+    }
+
+    /**
+     * 启动音频监控服务
+     */
+    private void startAudioMonitorService() {
+        try {
+            Intent intent = new Intent(this, AudioMonitorService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+            // 延迟绑定服务，确保服务已启动
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        bindService(intent, mAudioMonitorConnection, Context.BIND_AUTO_CREATE);
+                    } catch (Exception e) {
+                        Log.e("MainActivity", "绑定音频监控服务失败: " + e.getMessage());
+                        mAudioMonitorSC.setChecked(false);
+                    }
+                }
+            }, 1000); // 延迟1秒绑定
+        } catch (Exception e) {
+            Log.e("MainActivity", "启动音频监控服务失败: " + e.getMessage());
+            mAudioMonitorSC.setChecked(false);
+        }
+    }
+
+    /**
+     * 停止音频监控服务
+     */
+    private void stopAudioMonitorService() {
+        try {
+            // 解绑服务
+            if (mIsAudioMonitorBound) {
+                unbindService(mAudioMonitorConnection);
+                mIsAudioMonitorBound = false;
+            }
+            // 停止服务
+            Intent intent = new Intent(this, AudioMonitorService.class);
+            stopService(intent);
+        } catch (Exception e) {
+            // 忽略异常
+        }
+    }
+
+    /**
+     * 更新音频监控服务UI
+     */
+    private void updateAudioMonitorUI() {
+        // 这里简化处理，实际应该检查服务是否正在运行
+        mAudioMonitorLL.setVisibility(View.VISIBLE);
+        // 更新开关状态（这里简化处理）
+        mAudioMonitorSC.setChecked(mIsAudioMonitorBound);
+    }
+
+    /**
+     * 音频监控服务连接
+     */
+    private ServiceConnection mAudioMonitorConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AudioMonitorService.AudioMonitorBinder binder = (AudioMonitorService.AudioMonitorBinder) service;
+            mAudioMonitorService = binder.getService();
+            mIsAudioMonitorBound = true;
+
+            // 设置音频状态监听器
+            mAudioMonitorService.setAudioStatusListener(new AudioMonitorService.AudioStatusListener() {
+                @Override
+                public void onAudioStatusChanged(String newStatus) {
+                    // 音频状态变化时的处理
+                    updateUI();
+                }
+            });
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mAudioMonitorService = null;
+            mIsAudioMonitorBound = false;
+        }
+    };
+
     @Override
     protected void onDestroy() {
         // 当前Activity静态引用赋空
         mActivity = null;
+
+        // 停止音频监控服务
+        if (mIsAudioMonitorBound) {
+            try {
+                unbindService(mAudioMonitorConnection);
+            } catch (Exception e) {
+                // 忽略异常
+            }
+            mIsAudioMonitorBound = false;
+        }
+
         super.onDestroy();
     }
 

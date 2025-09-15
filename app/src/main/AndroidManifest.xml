@@ -12,6 +12,8 @@
     
     <!-- 前台服务类型权限 (Android 10+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <!-- 媒体播放前台服务权限 (如果以后需要) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     
     <!-- 查询其他应用的权限 (Android 11+) -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" 
@@ -81,6 +83,17 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="accessibility_service" />
+        </service>
+
+        <!-- 音频监控服务 -->
+        <service
+            android:name=".service.AudioMonitorService"
+            android:label="音频监控服务"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="audio_monitor" />
         </service>
 
         <!-- 辅助服务广播接收器 -->

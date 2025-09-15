@@ -21,6 +21,7 @@ import androidx.annotation.RequiresApi;
 import com.wangnan.currentactivity.receiver.MAccessibilityServiceReceiver;
 import com.wangnan.currentactivity.ui.activity.MainActivity;
 import com.wangnan.currentactivity.ui.window.WindowViewContainer;
+import com.wangnan.currentactivity.util.AudioStateManager;
 import com.wangnan.currentactivity.util.NotificationUtil;
 
 /**
@@ -89,6 +90,11 @@ public class MAccessibilityService extends AccessibilityService {
     private String mCurrentAudioStatus = "";
 
     /**
+     * 音频状态监听器
+     */
+    private AudioStateManager.AudioStatusListener mAudioStatusListener;
+
+    /**
      * 服务连接完成
      */
     @RequiresApi(api = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -96,7 +102,10 @@ public class MAccessibilityService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
-        
+
+        // 设置音频状态监听器
+        setupAudioStateListener();
+
         try {
             // 添加通知栏消息（将服务提升到前台）- 必须先启动前台服务
             addNotification();
@@ -216,43 +225,45 @@ public class MAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * 获取完整的设备状态信息（使用缓存的音频状态）
-     * 
-     * 优先使用音频监控器缓存的状态，如果没有则实时获取
-     * 
+     * 获取完整的设备状态信息（使用音频状态管理器的实时状态）
+     *
+     * 音频状态管理器提供来自音频监控服务的实时状态
+     *
      * @return 格式化的设备状态字符串，如 "🔋85%电量 📱亮屏🔒锁定🎵播放"
      */
-//    private String getDeviceStatusWithCachedAudio() {
-//        try {
-//            StringBuilder statusBuilder = new StringBuilder();
-//
-//            // 1. 电池电量信息
-//            statusBuilder.append(getBatteryInfo());
-//
-//            // 2. 屏幕状态
-//            statusBuilder.append(" ").append(getScreenStatus());
-//
-//            // 3. 锁屏状态
-//            statusBuilder.append(getLockScreenStatus());
-//
-//            // 4. 音乐播放状态 - 优先使用缓存的状态
-//            String audioStatus;
-//            if (!mCurrentAudioStatus.isEmpty()) {
-//                audioStatus = mCurrentAudioStatus;
-//                Log.d("DeviceStatus", "🎵 使用缓存的音频状态: " + audioStatus);
-//            } else {
-//                audioStatus = getMusicStatus();
-//                Log.d("DeviceStatus", "🎵 实时获取音频状态: " + audioStatus);
-//            }
-//            statusBuilder.append(audioStatus);
-//
-//            return statusBuilder.toString();
-//
-//        } catch (Exception e) {
-//            Log.e("DeviceStatus", "获取设备状态失败: " + e.getMessage());
-//            return "🔋??%电量 📱未知";
-//        }
-//    }
+    private String getDeviceStatusWithCachedAudio() {
+        try {
+            StringBuilder statusBuilder = new StringBuilder();
+
+            // 1. 电池电量信息
+            statusBuilder.append(getBatteryInfo());
+
+            // 2. 屏幕状态
+            statusBuilder.append(" ").append(getScreenStatus());
+
+            // 3. 锁屏状态
+            statusBuilder.append(getLockScreenStatus());
+
+            // 4. 音乐播放状态 - 优先使用音频状态管理器的实时状态
+            String audioStatus;
+            String cachedAudioStatus = AudioStateManager.getInstance().getCurrentAudioStatus();
+            if (!cachedAudioStatus.isEmpty()) {
+                audioStatus = cachedAudioStatus;
+                Log.d("DeviceStatus", "🎵 使用音频状态管理器的实时状态: " + audioStatus);
+            } else {
+                // 如果音频状态管理器没有状态，才使用本地获取
+                audioStatus = getMusicStatus();
+                Log.d("DeviceStatus", "🎵 实时获取音频状态: " + audioStatus);
+            }
+            statusBuilder.append(audioStatus);
+
+            return statusBuilder.toString();
+
+        } catch (Exception e) {
+            Log.e("DeviceStatus", "获取设备状态失败: " + e.getMessage());
+            return "🔋??%电量 📱未知";
+        }
+    }
 
     /**
      * 获取完整的设备状态信息（实时获取所有状态）
@@ -475,8 +486,8 @@ public class MAccessibilityService extends AccessibilityService {
             java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
             String currentTimeStr = timeFormat.format(new java.util.Date(currentTime));
             
-            // 获取完整的设备状态信息（实时获取所有状态）
-            String deviceStatus = getDeviceStatus();
+            // 获取完整的设备状态信息（优先使用缓存的音频状态）
+            String deviceStatus = getDeviceStatusWithCachedAudio();
             
             // 格式化显示信息：时间 + 设备状态 + 包名 + 类名
             // 显示格式：
@@ -506,10 +517,85 @@ public class MAccessibilityService extends AccessibilityService {
 
 
     /**
+     * 更新音频状态缓存（供音频监控服务调用）
+     *
+     * @param audioStatus 新的音频状态
+     */
+    public void updateCachedAudioStatus(String audioStatus) {
+        try {
+            if (audioStatus != null && !audioStatus.equals(mCurrentAudioStatus)) {
+                mCurrentAudioStatus = audioStatus;
+                Log.d("MAccessibilityService", "🎵 更新音频状态缓存: " + audioStatus);
+
+                // 同时更新音频状态管理器
+                AudioStateManager.getInstance().updateAudioStatus(audioStatus);
+
+                // 触发悬浮窗更新（使用音频状态管理器的状态）
+                updateCompleteWindowDisplay();
+            }
+        } catch (Exception e) {
+            Log.e("MAccessibilityService", "🎵 更新音频状态缓存失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 触发音频状态更新（供音频监控服务调用）
+     *
+     * 当音频监控服务检测到音频状态变化时，调用此方法来立即更新悬浮窗
+     */
+    public void triggerAudioStateUpdate() {
+        try {
+            Log.d("MAccessibilityService", "🎵 收到音频监控服务的更新请求");
+
+            // 触发完整的悬浮窗更新（使用最新的音频状态）
+            updateCompleteWindowDisplay();
+
+        } catch (Exception e) {
+            Log.e("MAccessibilityService", "🎵 触发音频状态更新失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 设置音频状态监听器
+     */
+    private void setupAudioStateListener() {
+        mAudioStatusListener = new AudioStateManager.AudioStatusListener() {
+            @Override
+            public void onAudioStatusChanged(String newStatus) {
+                try {
+                    Log.d("MAccessibilityService", "🎵 音频状态监听器收到变化: " + newStatus);
+
+                    // 立即更新悬浮窗显示
+                    updateCompleteWindowDisplay();
+
+                } catch (Exception e) {
+                    Log.e("MAccessibilityService", "🎵 处理音频状态变化失败: " + e.getMessage());
+                }
+            }
+        };
+
+        // 注册监听器
+        AudioStateManager.getInstance().addAudioStatusListener(mAudioStatusListener);
+    }
+
+    /**
+     * 清除音频状态监听器
+     */
+    private void clearAudioStateListener() {
+        if (mAudioStatusListener != null) {
+            AudioStateManager.getInstance().removeAudioStatusListener(mAudioStatusListener);
+            mAudioStatusListener = null;
+        }
+    }
+
+    /**
      * 服务退出
      */
     @Override
     public void onDestroy() {
+        // 清除音频状态监听器
+        clearAudioStateListener();
+
         // 移除窗口视图，销毁视图容器
         if (mWindowViewContainer != null) {
             mWindowViewContainer.destory();
@@ -529,7 +615,7 @@ public class MAccessibilityService extends AccessibilityService {
         if (MainActivity.mActivity != null) {
             MainActivity.mActivity.updateUI();
         }
-        
+
         // 停止前台服务
         stopForeground(true);
         super.onDestroy();
