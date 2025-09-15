@@ -9,6 +9,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.wangnan.currentactivity.ui.window.WindowViewContainer;
+
 /**
  * @ClassName: AudioStateMonitor
  * @Description: 音频状态监控服务
@@ -47,6 +49,9 @@ public class AudioStateMonitor {
     private AudioStateChangeListener mListener;
     private Handler mHandler;
     
+    // 悬浮窗容器引用
+    private WindowViewContainer mWindowViewContainer;
+    
     // 广播接收器
     private AudioStateBroadcastReceiver mBroadcastReceiver;
     
@@ -59,16 +64,27 @@ public class AudioStateMonitor {
     /**
      * 构造函数
      * @param context 上下文
-     * @param listener 音频状态变化监听器
+     * @param windowViewContainer 悬浮窗容器
+     * @param listener 音频状态变化监听器（可选，用于额外的回调通知）
      */
-    public AudioStateMonitor(Context context, AudioStateChangeListener listener) {
+    public AudioStateMonitor(Context context, WindowViewContainer windowViewContainer, AudioStateChangeListener listener) {
         this.mContext = context;
+        this.mWindowViewContainer = windowViewContainer;
         this.mListener = listener;
         this.mHandler = new Handler(Looper.getMainLooper());
         this.mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         
         initAudioFocusListener();
         initBroadcastReceiver();
+    }
+    
+    /**
+     * 构造函数（仅悬浮窗更新，无回调）
+     * @param context 上下文
+     * @param windowViewContainer 悬浮窗容器
+     */
+    public AudioStateMonitor(Context context, WindowViewContainer windowViewContainer) {
+        this(context, windowViewContainer, null);
     }
     
     /**
@@ -177,15 +193,103 @@ public class AudioStateMonitor {
             if (!newAudioStatus.equals(mLastAudioStatus)) {
                 mLastAudioStatus = newAudioStatus;
                 
+                Log.d(TAG, "🎵 音频状态变化: " + mLastAudioStatus + " → " + newAudioStatus);
+                
+                // 直接更新悬浮窗音频状态
+                updateWindowAudioStatus(newAudioStatus);
+                
+                // 可选的回调通知
                 if (mListener != null) {
                     mListener.onAudioStateChanged(newAudioStatus);
                 }
-                
-                Log.d(TAG, "音频状态已更新: " + newAudioStatus);
             }
             
         } catch (Exception e) {
             Log.e(TAG, "更新音频状态失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 直接更新悬浮窗的音频状态
+     * 
+     * @param newAudioStatus 新的音频状态
+     */
+    private void updateWindowAudioStatus(String newAudioStatus) {
+        try {
+            if (mWindowViewContainer == null) {
+                Log.w(TAG, "悬浮窗容器为空，无法更新音频状态");
+                return;
+            }
+            
+            // 获取当前悬浮窗显示的内容
+            String currentText = mWindowViewContainer.getCurrentDisplayText();
+            if (currentText == null || currentText.isEmpty()) {
+                Log.w(TAG, "当前悬浮窗内容为空，无法更新音频状态");
+                return;
+            }
+            
+            // 解析当前显示的内容
+            String[] lines = currentText.split("\n");
+            if (lines.length < 3) {
+                Log.w(TAG, "当前悬浮窗内容格式不正确，行数: " + lines.length);
+                return;
+            }
+            
+            // 提取当前的状态行（第一行）
+            String currentStatusLine = lines[0];
+            String packageName = lines[1];
+            String className = lines[2];
+            
+            // 解析状态行，替换音频部分
+            String newStatusLine = replaceAudioStatusInLine(currentStatusLine, newAudioStatus);
+            
+            // 构建新的显示内容
+            String newDisplayText = newStatusLine + "\n" + packageName + "\n" + className;
+            
+            // 直接更新悬浮窗显示
+            mWindowViewContainer.updateWindowView(newDisplayText);
+            
+            Log.d(TAG, "✅ AudioStateMonitor 独立更新悬浮窗音频状态: " + newAudioStatus);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "AudioStateMonitor 更新悬浮窗失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 替换状态行中的音频状态
+     * 
+     * @param statusLine 原始状态行，如："14:30:20 🔋85%电量 📱亮屏🔒锁定🔊大声"
+     * @param newAudioStatus 新的音频状态，如："🎵播放"
+     * @return 替换后的状态行
+     */
+    private String replaceAudioStatusInLine(String statusLine, String newAudioStatus) {
+        try {
+            // 音频状态的可能模式
+            String[] audioPatterns = {
+                "🎵播放", "🔊大声", "🔉中声", "🔈小声", "🔇静音", "🔇无声", "📳震动", "🔊未知"
+            };
+            
+            String result = statusLine;
+            
+            // 尝试替换已存在的音频状态
+            for (String pattern : audioPatterns) {
+                if (result.contains(pattern)) {
+                    result = result.replace(pattern, newAudioStatus);
+                    Log.d(TAG, "🔄 音频状态替换: '" + pattern + "' → '" + newAudioStatus + "'");
+                    return result;
+                }
+            }
+            
+            // 如果没找到现有音频状态，在末尾添加
+            result = result + newAudioStatus;
+            Log.d(TAG, "➕ 在状态行末尾添加音频状态: " + newAudioStatus);
+            
+            return result;
+            
+        } catch (Exception e) {
+            Log.e(TAG, "替换音频状态失败: " + e.getMessage());
+            return statusLine + newAudioStatus; // 降级处理
         }
     }
     

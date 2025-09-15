@@ -126,7 +126,7 @@ public class MAccessibilityService extends AccessibilityService {
                 MainActivity.mActivity.updateUI();
             }
             
-            // 启动音频状态监控
+            // 启动音频状态监控（传入悬浮窗容器）
             startAudioMonitoring();
         } catch (Exception e) {
             Log.d("ERROR", Log.getStackTraceString(e));
@@ -471,17 +471,14 @@ public class MAccessibilityService extends AccessibilityService {
      */
     private void startAudioMonitoring() {
         try {
-            if (mAudioStateMonitor == null) {
-                mAudioStateMonitor = new AudioStateMonitor(this, new AudioStateMonitor.AudioStateChangeListener() {
-                    @Override
-                    public void onAudioStateChanged(String newAudioStatus) {
-                        // 音频状态发生变化时，更新悬浮窗显示
-                        updateWindowWithNewAudioStatus(newAudioStatus);
-                    }
-                });
+            if (mAudioStateMonitor == null && mWindowViewContainer != null) {
+                // 直接传入悬浮窗容器，让 AudioStateMonitor 自主更新悬浮窗
+                mAudioStateMonitor = new AudioStateMonitor(this, mWindowViewContainer);
             }
-            mAudioStateMonitor.startMonitoring();
-            Log.d("AudioMonitor", "音频监控服务已启动");
+            if (mAudioStateMonitor != null) {
+                mAudioStateMonitor.startMonitoring();
+                Log.d("AudioMonitor", "🎵 音频监控服务已启动，AudioStateMonitor 将直接管理悬浮窗音频状态");
+            }
         } catch (Exception e) {
             Log.e("AudioMonitor", "启动音频监控失败: " + e.getMessage());
         }
@@ -502,90 +499,6 @@ public class MAccessibilityService extends AccessibilityService {
         }
     }
     
-    /**
-     * 根据新的音频状态更新悬浮窗显示
-     * 
-     * @param newAudioStatus 新的音频状态
-     */
-    private void updateWindowWithNewAudioStatus(String newAudioStatus) {
-        try {
-            Log.d("AudioMonitor", "🎵 音频状态独立更新: " + newAudioStatus);
-            
-            if (mWindowViewContainer == null) {
-                return;
-            }
-            
-            // 获取当前悬浮窗显示的内容
-            String currentText = mWindowViewContainer.getCurrentDisplayText();
-            if (currentText == null || currentText.isEmpty()) {
-                Log.d("AudioMonitor", "当前悬浮窗内容为空，无法更新音频状态");
-                return;
-            }
-            
-            // 解析当前显示的内容
-            String[] lines = currentText.split("\n");
-            if (lines.length < 3) {
-                Log.d("AudioMonitor", "当前悬浮窗内容格式不正确");
-                return;
-            }
-            
-            // 提取当前的状态行（第一行）
-            String currentStatusLine = lines[0];
-            String packageName = lines[1];
-            String className = lines[2];
-            
-            // 解析状态行，替换音频部分
-            String newStatusLine = replaceAudioStatusInLine(currentStatusLine, newAudioStatus);
-            
-            // 构建新的显示内容
-            String newDisplayText = newStatusLine + "\n" + packageName + "\n" + className;
-            
-            // 直接更新悬浮窗显示
-            mWindowViewContainer.updateWindowView(newDisplayText);
-            
-            Log.d("AudioMonitor", "✅ 音频状态独立更新完成: " + newAudioStatus);
-            
-        } catch (Exception e) {
-            Log.e("AudioMonitor", "更新悬浮窗音频状态失败: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * 替换状态行中的音频状态
-     * 
-     * @param statusLine 原始状态行，如："14:30:20 🔋85%电量 📱亮屏🔒锁定🔊大声"
-     * @param newAudioStatus 新的音频状态，如："🎵播放"
-     * @return 替换后的状态行
-     */
-    private String replaceAudioStatusInLine(String statusLine, String newAudioStatus) {
-        try {
-            // 音频状态的可能模式
-            String[] audioPatterns = {
-                "🎵播放", "🔊大声", "🔉中声", "🔈小声", "🔇静音", "🔇无声", "📳震动", "🔊未知"
-            };
-            
-            String result = statusLine;
-            
-            // 尝试替换已存在的音频状态
-            for (String pattern : audioPatterns) {
-                if (result.contains(pattern)) {
-                    result = result.replace(pattern, newAudioStatus);
-                    Log.d("AudioReplace", "替换 '" + pattern + "' 为 '" + newAudioStatus + "'");
-                    return result;
-                }
-            }
-            
-            // 如果没找到现有音频状态，在末尾添加
-            result = result + newAudioStatus;
-            Log.d("AudioReplace", "在末尾添加音频状态: " + newAudioStatus);
-            
-            return result;
-            
-        } catch (Exception e) {
-            Log.e("AudioReplace", "替换音频状态失败: " + e.getMessage());
-            return statusLine + newAudioStatus; // 降级处理
-        }
-    }
     
     /**
      * 完整更新悬浮窗显示
