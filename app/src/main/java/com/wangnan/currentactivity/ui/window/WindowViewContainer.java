@@ -124,16 +124,20 @@ public class WindowViewContainer {
     }
 
     /**
-     * 更新窗口视图 - 显示前台页面包名、类名和切换时间
+     * 更新窗口视图 - 显示前台页面包名、类名和完整设备状态
      * 
-     * 这个方法负责将从无障碍服务获取到的前台页面信息显示在悬浮窗中
+     * 这个方法负责将从无障碍服务获取到的前台页面信息和设备状态显示在悬浮窗中
      * 
      * 显示格式：
-     * 第一行：切换时间 (如: 23:45:30)
+     * 第一行：时间 + 完整设备状态 (如: 23:45:30 🔋85%电量 📱亮屏🔒锁定🎵播放)
+     *   - 🔋85%电量/⚡85%电量/🪫15%电量: 电量状态（正常/充电/低电量）
+     *   - 📱亮屏/📴熄屏: 屏幕状态（亮屏/熄屏）
+     *   - 🔒锁定/🔐简锁/🔓解锁: 锁屏状态（安全锁屏/简单锁屏/未锁屏）
+     *   - 🎵播放/🔊大声/🔉中声/🔈小声/🔇静音/📳震动: 音频状态
      * 第二行：应用包名 (如: com.tencent.mm)
      * 第三行：Activity类名 (如: com.tencent.mm.ui.LauncherUI)
      * 
-     * @param text 要显示的文本内容，格式为"时间\n包名\nActivity类名"
+     * @param text 要显示的文本内容，格式为"时间 设备状态\n包名\nActivity类名"
      */
     public void updateWindowView(String text) {
         // 检查悬浮窗是否已经添加到窗口管理器中
@@ -141,8 +145,8 @@ public class WindowViewContainer {
             
             // 更新悬浮窗文本内容
             // text 的典型格式：
-            // "23:45:30\ncom.android.settings\ncom.android.settings.Settings"
-            // 第一行：窗口切换时间
+            // "23:45:30 🔋85%电量 📱亮屏🔒锁定🎵播放\ncom.android.settings\ncom.android.settings.Settings"
+            // 第一行：窗口切换时间 + 完整设备状态（带中文说明的电量+屏幕+锁屏+音频状态）
             // 第二行：应用包名  
             // 第三行：Activity完整类名
             mTextView.setText(text);

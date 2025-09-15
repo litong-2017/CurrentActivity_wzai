@@ -2,12 +2,17 @@ package com.wangnan.currentactivity.service;
 
 import android.accessibilityservice.AccessibilityService;
 import android.annotation.SuppressLint;
+import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
+import android.os.BatteryManager;
 import android.os.Build;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 
@@ -184,15 +189,18 @@ public class MAccessibilityService extends AccessibilityService {
                 // 获取当前时间戳
                 long currentTime = System.currentTimeMillis();
                 // 格式化时间显示 (HH:mm:ss)
-                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault());
                 String currentTimeStr = timeFormat.format(new java.util.Date(currentTime));
                 
-                // 格式化显示信息：时间 + 包名 + 类名
+                // 获取设备状态信息
+                String deviceStatus = getDeviceStatus();
+                
+                // 格式化显示信息：时间 + 设备状态 + 包名 + 类名
                 // 显示格式：
-                // 23:45:30 (切换时间)
+                // 23:45:30 🔋85% 📱🔒🎵 (时间+电量+屏幕+锁屏+音乐状态)
                 // com.android.settings (应用包名)
                 // com.android.settings.Settings (Activity类名)
-                String displayText = currentTimeStr + "\n" + packageName + "\n" + className;
+                String displayText = currentTimeStr + " " + deviceStatus + "\n" + packageName + "\n" + className;
                 
                 // 更新悬浮窗显示内容
                 // 这里将获取到的前台页面信息和时间戳传递给悬浮窗进行显示
@@ -209,6 +217,210 @@ public class MAccessibilityService extends AccessibilityService {
         // 注意：还可以监听其他类型的事件来获取更多信息
         // 例如：TYPE_WINDOW_CONTENT_CHANGED, TYPE_VIEW_CLICKED 等
         // 但为了性能考虑，我们只监听窗口状态变化事件
+    }
+
+    /**
+     * 获取完整的设备状态信息
+     * 
+     * 集成电量、屏幕状态、锁屏状态、充电状态、音乐播放状态等信息
+     * 
+     * @return 格式化的设备状态字符串，如 "🔋85%电量 📱亮屏🔒锁定🎵播放"
+     */
+    private String getDeviceStatus() {
+        try {
+            StringBuilder statusBuilder = new StringBuilder();
+            
+            // 1. 电池电量信息
+            statusBuilder.append(getBatteryInfo());
+            
+            // 2. 屏幕状态
+            statusBuilder.append(" ").append(getScreenStatus());
+            
+            // 3. 锁屏状态  
+            statusBuilder.append(getLockScreenStatus());
+            
+            // 4. 音乐播放状态
+            statusBuilder.append(getMusicStatus());
+            
+            return statusBuilder.toString();
+            
+        } catch (Exception e) {
+            Log.e("DeviceStatus", "获取设备状态失败: " + e.getMessage());
+            return "🔋??%电量 📱未知";
+        }
+    }
+
+    /**
+     * 获取电池电量信息
+     * 
+     * 通过 BatteryManager 获取当前设备的电池状态信息
+     * 
+     * @return 格式化的电量信息字符串，如 "🔋85%" 或 "⚡85%"（充电时）
+     */
+    private String getBatteryInfo() {
+        try {
+            // 获取电池管理器
+            BatteryManager batteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
+            if (batteryManager == null) {
+                return "🔋??%";
+            }
+            
+            // 获取当前电量百分比
+            int batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+            
+            // 获取充电状态
+            Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            boolean isCharging = false;
+            if (batteryIntent != null) {
+                int status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || 
+                           status == BatteryManager.BATTERY_STATUS_FULL;
+            }
+            
+            // 根据充电状态选择图标
+            String batteryIcon = isCharging ? "⚡" : "🔋";
+            
+            // 根据电量显示不同图标
+            if (batteryLevel <= 15) {
+                batteryIcon = isCharging ? "⚡" : "🪫"; // 低电量
+            } else if (batteryLevel <= 50) {
+                batteryIcon = isCharging ? "⚡" : "🔋"; // 中等电量
+            } else {
+                batteryIcon = isCharging ? "⚡" : "🔋"; // 高电量
+            }
+            
+            return batteryIcon + batteryLevel + "%电量";
+            
+        } catch (Exception e) {
+            Log.e("BatteryInfo", "获取电池信息失败: " + e.getMessage());
+            return "🔋??%电量";
+        }
+    }
+
+    /**
+     * 获取屏幕状态
+     * 
+     * 检测屏幕是否亮起
+     * 
+     * @return 屏幕状态图标，"📱亮屏"（亮屏）或 "📴熄屏"（熄屏）
+     */
+    private String getScreenStatus() {
+        try {
+            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (powerManager == null) {
+                return "📱未知";
+            }
+            
+            boolean isScreenOn;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+                isScreenOn = powerManager.isInteractive();
+            } else {
+                isScreenOn = powerManager.isScreenOn();
+            }
+            
+            return isScreenOn ? "📱亮屏" : "📴熄屏";
+            
+        } catch (Exception e) {
+            Log.e("ScreenStatus", "获取屏幕状态失败: " + e.getMessage());
+            return "📱未知";
+        }
+    }
+
+    /**
+     * 获取锁屏状态
+     * 
+     * 检测设备是否处于锁屏状态
+     * 
+     * @return 锁屏状态图标，"🔒锁定"（锁屏）或 "🔓解锁"（未锁屏）
+     */
+    private String getLockScreenStatus() {
+        try {
+            KeyguardManager keyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (keyguardManager == null) {
+                return "🔒未知";
+            }
+            
+            boolean isLocked = keyguardManager.isKeyguardLocked();
+            boolean isSecure = keyguardManager.isKeyguardSecure();
+            
+            if (isLocked) {
+                return isSecure ? "🔒锁定" : "🔐简锁"; // 🔒安全锁屏 🔐简单锁屏
+            } else {
+                return "🔓解锁"; // 未锁屏
+            }
+            
+        } catch (Exception e) {
+            Log.e("LockStatus", "获取锁屏状态失败: " + e.getMessage());
+            return "🔒未知";
+        }
+    }
+
+    /**
+     * 获取音乐播放状态
+     * 
+     * 检测是否有音乐正在播放和音频状态
+     * 
+     * @return 音乐播放状态图标，"🎵播放"（播放中）、"🔇静音"（静音）等
+     */
+    private String getMusicStatus() {
+        try {
+            AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager == null) {
+                return "";
+            }
+            
+            // 检查音乐是否活跃（更准确的播放状态检测）
+            boolean isMusicActive = audioManager.isMusicActive();
+            
+            // 检查是否静音模式
+            int ringerMode = audioManager.getRingerMode();
+            boolean isSilentMode = ringerMode == AudioManager.RINGER_MODE_SILENT;
+            boolean isVibrateMode = ringerMode == AudioManager.RINGER_MODE_VIBRATE;
+            
+            // 检查媒体音量
+            int musicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+            int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+            
+            // 检查是否有音频焦点（更准确的播放检测）
+            boolean hasAudioFocus = false;
+            try {
+                // 通过反射获取音频焦点状态（Android内部方法）
+                hasAudioFocus = isMusicActive; // 暂时使用isMusicActive作为替代
+            } catch (Exception e) {
+                // 如果反射失败，使用isMusicActive
+                hasAudioFocus = isMusicActive;
+            }
+            
+            // 优先显示播放状态
+            if (isMusicActive || hasAudioFocus) {
+                return "🎵播放"; // 音乐播放中
+            }
+            
+            // 然后检查静音状态
+            if (isSilentMode) {
+                return "🔇静音"; // 静音模式
+            } else if (isVibrateMode) {
+                return "📳震动"; // 震动模式
+            } else if (musicVolume == 0) {
+                return "🔇无声"; // 媒体音量为0
+            } else {
+                // 根据音量显示不同状态
+                float volumePercent = (float) musicVolume / maxVolume;
+                if (volumePercent > 0.7) {
+                    return "🔊大声"; // 高音量
+                } else if (volumePercent > 0.3) {
+                    return "🔉中声"; // 中音量  
+                } else if (volumePercent > 0) {
+                    return "🔈小声"; // 低音量
+                } else {
+                    return "🔇无声"; // 无音量
+                }
+            }
+            
+        } catch (Exception e) {
+            Log.e("MusicStatus", "获取音乐状态失败: " + e.getMessage());
+            return "🔊未知";
+        }
     }
 
     /**
