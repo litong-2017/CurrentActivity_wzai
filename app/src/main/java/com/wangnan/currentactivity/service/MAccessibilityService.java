@@ -76,6 +76,22 @@ public class MAccessibilityService extends AccessibilityService {
      * 通知栏管理器
      */
     private NotificationManager mNotificationManager;
+    
+    /**
+     * 音频状态监控器
+     */
+    private AudioStateMonitor mAudioStateMonitor;
+    
+    /**
+     * 当前缓存的应用信息
+     */
+    private String mCurrentPackageName = "未知应用";
+    private String mCurrentClassName = "未知Activity";
+    
+    /**
+     * 当前缓存的音频状态
+     */
+    private String mCurrentAudioStatus = "";
 
     /**
      * 服务连接完成
@@ -109,6 +125,9 @@ public class MAccessibilityService extends AccessibilityService {
             if (MainActivity.mActivity != null) {
                 MainActivity.mActivity.updateUI();
             }
+            
+            // 启动音频状态监控
+            startAudioMonitoring();
         } catch (Exception e) {
             Log.d("ERROR", Log.getStackTraceString(e));
         }
@@ -186,31 +205,16 @@ public class MAccessibilityService extends AccessibilityService {
             // 验证包名和类名都不为空
             if (packageName != null && className != null) {
                 
-                // 获取当前时间戳
-                long currentTime = System.currentTimeMillis();
-                // 格式化时间显示 (HH:mm:ss)
-                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault());
-                String currentTimeStr = timeFormat.format(new java.util.Date(currentTime));
-                
-                // 获取设备状态信息
-                String deviceStatus = getDeviceStatus();
-                
-                // 格式化显示信息：时间 + 设备状态 + 包名 + 类名
-                // 显示格式：
-                // 23:45:30 🔋85% 📱🔒🎵 (时间+电量+屏幕+锁屏+音乐状态)
-                // com.android.settings (应用包名)
-                // com.android.settings.Settings (Activity类名)
-                String displayText = currentTimeStr + " " + deviceStatus + "\n" + packageName + "\n" + className;
-                
-                // 更新悬浮窗显示内容
-                // 这里将获取到的前台页面信息和时间戳传递给悬浮窗进行显示
-                if (mWindowViewContainer != null) {
-                    mWindowViewContainer.updateWindowView(displayText);
-                }
+                // 更新缓存的应用信息
+                mCurrentPackageName = packageName.toString();
+                mCurrentClassName = className.toString();
                 
                 // 调试日志：可以在开发时查看获取到的信息
                 android.util.Log.d("CurrentActivity", 
                     "前台应用包名: " + packageName + ", Activity类名: " + className);
+                
+                // 触发完整的悬浮窗更新（包含新的应用信息）
+                updateCompleteWindowDisplay();
             }
         }
         
@@ -220,7 +224,46 @@ public class MAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * 获取完整的设备状态信息
+     * 获取完整的设备状态信息（使用缓存的音频状态）
+     * 
+     * 优先使用音频监控器缓存的状态，如果没有则实时获取
+     * 
+     * @return 格式化的设备状态字符串，如 "🔋85%电量 📱亮屏🔒锁定🎵播放"
+     */
+    private String getDeviceStatusWithCachedAudio() {
+        try {
+            StringBuilder statusBuilder = new StringBuilder();
+            
+            // 1. 电池电量信息
+            statusBuilder.append(getBatteryInfo());
+            
+            // 2. 屏幕状态
+            statusBuilder.append(" ").append(getScreenStatus());
+            
+            // 3. 锁屏状态  
+            statusBuilder.append(getLockScreenStatus());
+            
+            // 4. 音乐播放状态 - 优先使用缓存的状态
+            String audioStatus;
+            if (!mCurrentAudioStatus.isEmpty()) {
+                audioStatus = mCurrentAudioStatus;
+                Log.d("DeviceStatus", "🎵 使用缓存的音频状态: " + audioStatus);
+            } else {
+                audioStatus = getMusicStatus();
+                Log.d("DeviceStatus", "🎵 实时获取音频状态: " + audioStatus);
+            }
+            statusBuilder.append(audioStatus);
+            
+            return statusBuilder.toString();
+            
+        } catch (Exception e) {
+            Log.e("DeviceStatus", "获取设备状态失败: " + e.getMessage());
+            return "🔋??%电量 📱未知";
+        }
+    }
+
+    /**
+     * 获取完整的设备状态信息（实时获取所有状态）
      * 
      * 集成电量、屏幕状态、锁屏状态、充电状态、音乐播放状态等信息
      * 
@@ -424,6 +467,166 @@ public class MAccessibilityService extends AccessibilityService {
     }
 
     /**
+     * 启动音频状态监控
+     */
+    private void startAudioMonitoring() {
+        try {
+            if (mAudioStateMonitor == null) {
+                mAudioStateMonitor = new AudioStateMonitor(this, new AudioStateMonitor.AudioStateChangeListener() {
+                    @Override
+                    public void onAudioStateChanged(String newAudioStatus) {
+                        // 音频状态发生变化时，更新悬浮窗显示
+                        updateWindowWithNewAudioStatus(newAudioStatus);
+                    }
+                });
+            }
+            mAudioStateMonitor.startMonitoring();
+            Log.d("AudioMonitor", "音频监控服务已启动");
+        } catch (Exception e) {
+            Log.e("AudioMonitor", "启动音频监控失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 停止音频状态监控
+     */
+    private void stopAudioMonitoring() {
+        try {
+            if (mAudioStateMonitor != null) {
+                mAudioStateMonitor.stopMonitoring();
+                mAudioStateMonitor = null;
+            }
+            Log.d("AudioMonitor", "音频监控服务已停止");
+        } catch (Exception e) {
+            Log.e("AudioMonitor", "停止音频监控失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据新的音频状态更新悬浮窗显示
+     * 
+     * @param newAudioStatus 新的音频状态
+     */
+    private void updateWindowWithNewAudioStatus(String newAudioStatus) {
+        try {
+            Log.d("AudioMonitor", "🎵 音频状态独立更新: " + newAudioStatus);
+            
+            if (mWindowViewContainer == null) {
+                return;
+            }
+            
+            // 获取当前悬浮窗显示的内容
+            String currentText = mWindowViewContainer.getCurrentDisplayText();
+            if (currentText == null || currentText.isEmpty()) {
+                Log.d("AudioMonitor", "当前悬浮窗内容为空，无法更新音频状态");
+                return;
+            }
+            
+            // 解析当前显示的内容
+            String[] lines = currentText.split("\n");
+            if (lines.length < 3) {
+                Log.d("AudioMonitor", "当前悬浮窗内容格式不正确");
+                return;
+            }
+            
+            // 提取当前的状态行（第一行）
+            String currentStatusLine = lines[0];
+            String packageName = lines[1];
+            String className = lines[2];
+            
+            // 解析状态行，替换音频部分
+            String newStatusLine = replaceAudioStatusInLine(currentStatusLine, newAudioStatus);
+            
+            // 构建新的显示内容
+            String newDisplayText = newStatusLine + "\n" + packageName + "\n" + className;
+            
+            // 直接更新悬浮窗显示
+            mWindowViewContainer.updateWindowView(newDisplayText);
+            
+            Log.d("AudioMonitor", "✅ 音频状态独立更新完成: " + newAudioStatus);
+            
+        } catch (Exception e) {
+            Log.e("AudioMonitor", "更新悬浮窗音频状态失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 替换状态行中的音频状态
+     * 
+     * @param statusLine 原始状态行，如："14:30:20 🔋85%电量 📱亮屏🔒锁定🔊大声"
+     * @param newAudioStatus 新的音频状态，如："🎵播放"
+     * @return 替换后的状态行
+     */
+    private String replaceAudioStatusInLine(String statusLine, String newAudioStatus) {
+        try {
+            // 音频状态的可能模式
+            String[] audioPatterns = {
+                "🎵播放", "🔊大声", "🔉中声", "🔈小声", "🔇静音", "🔇无声", "📳震动", "🔊未知"
+            };
+            
+            String result = statusLine;
+            
+            // 尝试替换已存在的音频状态
+            for (String pattern : audioPatterns) {
+                if (result.contains(pattern)) {
+                    result = result.replace(pattern, newAudioStatus);
+                    Log.d("AudioReplace", "替换 '" + pattern + "' 为 '" + newAudioStatus + "'");
+                    return result;
+                }
+            }
+            
+            // 如果没找到现有音频状态，在末尾添加
+            result = result + newAudioStatus;
+            Log.d("AudioReplace", "在末尾添加音频状态: " + newAudioStatus);
+            
+            return result;
+            
+        } catch (Exception e) {
+            Log.e("AudioReplace", "替换音频状态失败: " + e.getMessage());
+            return statusLine + newAudioStatus; // 降级处理
+        }
+    }
+    
+    /**
+     * 完整更新悬浮窗显示
+     * 
+     * 这个方法由前台应用变化和音频状态变化共同调用
+     * 确保所有状态信息都是最新的
+     */
+    private void updateCompleteWindowDisplay() {
+        try {
+            if (mWindowViewContainer == null) {
+                return;
+            }
+            
+            // 获取当前时间
+            long currentTime = System.currentTimeMillis();
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault());
+            String currentTimeStr = timeFormat.format(new java.util.Date(currentTime));
+            
+            // 获取完整的设备状态信息（实时获取所有状态）
+            String deviceStatus = getDeviceStatus();
+            
+            // 格式化显示信息：时间 + 设备状态 + 包名 + 类名
+            // 显示格式：
+            // 23:45:30 🔋85%电量 📱亮屏🔒锁定🎵播放 (时间+电量+屏幕+锁屏+音乐状态)
+            // com.android.settings (应用包名)
+            // com.android.settings.Settings (Activity类名)
+            String displayText = currentTimeStr + " " + deviceStatus + "\n" + 
+                               mCurrentPackageName + "\n" + mCurrentClassName;
+            
+            // 更新悬浮窗显示
+            mWindowViewContainer.updateWindowView(displayText);
+            
+            Log.d("WindowUpdate", "🔄 前台应用变化，悬浮窗完整更新 - 应用: " + mCurrentPackageName + 
+                  ", 状态: " + deviceStatus);
+            
+        } catch (Exception e) {
+            Log.e("WindowUpdate", "完整更新悬浮窗失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * 服务中断
      */
     @Override
@@ -455,6 +658,9 @@ public class MAccessibilityService extends AccessibilityService {
         if (MainActivity.mActivity != null) {
             MainActivity.mActivity.updateUI();
         }
+        // 停止音频状态监控
+        stopAudioMonitoring();
+        
         // 停止前台服务
         stopForeground(true);
         super.onDestroy();

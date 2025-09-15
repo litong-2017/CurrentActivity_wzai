@@ -196,6 +196,26 @@ public class WindowViewContainer {
     }
 
     /**
+     * 获取当前悬浮窗显示的文本内容
+     * 
+     * 用于音频状态监控器需要更新音频信息时，获取当前的包名和Activity信息
+     * 
+     * @return 当前显示的文本内容，如果获取失败返回空字符串
+     */
+    public String getCurrentDisplayText() {
+        try {
+            if (mTextView != null) {
+                CharSequence text = mTextView.getText();
+                return text != null ? text.toString() : "";
+            }
+            return "";
+        } catch (Exception e) {
+            Log.d("WindowViewContainer", "获取当前显示文本失败: " + e.getMessage());
+            return "";
+        }
+    }
+
+    /**
      * 销毁视图容器
      */
     public void destory() {
